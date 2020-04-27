@@ -1,21 +1,6 @@
 package de.thi.jbsa.prototype.view;
 
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Stream;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
-import com.vaadin.flow.component.AttachEvent;
-import com.vaadin.flow.component.DetachEvent;
-import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.Text;
-import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Label;
@@ -39,6 +24,13 @@ import de.thi.jbsa.prototype.model.event.MentionEvent;
 import de.thi.jbsa.prototype.model.event.MessagePostedEvent;
 import de.thi.jbsa.prototype.model.model.Message;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
+
+import java.text.MessageFormat;
+import java.util.*;
+import java.util.stream.Stream;
 
 @UIScope
 @SpringComponent
@@ -104,6 +96,9 @@ public class ChatView
   @Value("${studychat.url.sendMessage}")
   private String sendMessageUrl;
 
+
+  private boolean start = true;
+
   public ChatView(RestTemplate restTemplate) {
     this.restTemplate = restTemplate;
     HorizontalLayout componentLayout = new HorizontalLayout();
@@ -141,13 +136,6 @@ public class ChatView
       label.setTitle(tip);
       return label;
     }));
-    //
-    Button fetchEventsButton = new Button("Fetch last Events");
-    fetchEventsButton.addClickListener(e -> {
-      List<AbstractEvent> eventList = getEvents(sendUserIdField.getValue());
-      addNewMessages(eventList);
-    });
-    fetchEventsButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
     add(new Text("Welcome to Studychat"));
     sendLayout.add(sendUserIdField);
@@ -155,11 +143,11 @@ public class ChatView
     sendLayout.add(sendMessageButton);
 
     fetchLayout.add(msgListBox);
-    fetchLayout.add(fetchEventsButton);
 
     componentLayout.add(sendLayout);
     componentLayout.add(fetchLayout);
     add(componentLayout);
+
   }
 
   private void addMessageImpl(Message msg) {
@@ -203,6 +191,11 @@ public class ChatView
 
   @Override
   protected void onAttach(AttachEvent attachEvent) {
+    if(start){
+      getEvents(sendUserIdField.getValue()).forEach(event -> addNewMessage(event));
+      start = false;
+    }
+
     UI ui = attachEvent.getUI();
     eventRegistration = UiEventConsumer.registrer(abstractEvent -> ui.access(() -> addNewMessage(abstractEvent)));
   }
